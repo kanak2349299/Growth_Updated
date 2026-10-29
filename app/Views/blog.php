@@ -8,15 +8,28 @@
 <body class="home-solar">
     
 	<?php include 'includes/header.php' ?>
+	<?php
+	$blogTitle = isset($det->title) ? (string) $det->title : 'Blog';
+	$blogWriter = isset($det->writer) ? (string) $det->writer : 'Growth Investment & Development';
+	$blogDate = isset($det->blogdate) ? date('d M, Y', strtotime((string) $det->blogdate)) : '';
+	$blogImage = '';
+	if (!empty($det->image)) {
+	    $blogImageFile = basename((string) $det->image);
+	    $blogImagePath = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'blogs' . DIRECTORY_SEPARATOR . $blogImageFile;
+	    if (is_file($blogImagePath)) {
+	        $blogImage = base_url('uploads/blogs/' . rawurlencode($blogImageFile));
+	    }
+	}
+	?>
 	
-	<div class="breadcrumb-area bg-cover shadow dark text-center text-light mt-150" style="background-image: url('<?php echo base_url("public/front/assets/img/banner/10.jpg") ?>')">
+	<div class="breadcrumb-area bg-cover shadow dark text-center text-light mt-150" style="background-image: url('<?php echo base_url($frontAssetBase . "img/banner/10.jpg") ?>')">
         <div class="breadcrum-shape">
-            <img src="<?php echo base_url("public/front/assets/img/shapes/breadcrumb.png") ?>" alt="Image Not Found">
+            <img src="<?php echo base_url($frontAssetBase . "img/shapes/breadcrumb.png") ?>" alt="Image Not Found">
         </div>
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 col-md-12">
-                    <h1><?php echo $det->title ?></h1>
+                    <h1><?php echo esc($blogTitle) ?></h1>
                     <ul class="breadcrumb">
                         <li><a href="<?php echo base_url('') ?>"><i class="fas fa-home"></i> Home</a></li>
                         <li>Blogs</li>
@@ -34,31 +47,30 @@
                         <div class="blog-style-two item">
 
                             <div class="blog-item-box">
-                                
+                                <?php if ($blogImage !== ''): ?>
                                 <div class="thumb">
-                                    <a ><img src="<?php echo base_url('uploads/blogs/'.$det->image) ?>" alt="<?php echo $det->title ?>"></a>
+                                    <a href="<?php echo esc($blogImage) ?>"><img src="<?php echo esc($blogImage) ?>" alt="<?php echo esc($blogTitle) ?>"></a>
                                 </div>
+                                <?php endif; ?>
                                 <div class="info">
                                     <div class="meta">
                                         <ul>
+                                            <?php if ($blogDate !== ''): ?>
                                             <li>
-                                                <a ><i class="fas fa-calendar-alt"></i> <?php echo date('d M, Y',strtotime($det->blogdate)) ?></a>
+                                                <a><i class="fas fa-calendar-alt"></i> <?php echo esc($blogDate) ?></a>
                                             </li>
+                                            <?php endif; ?>
                                             <li>
-                                                <a ><i class="fas fa-user-circle"></i>By <?php echo $det->writer ?></a>
+                                                <a><i class="fas fa-user-circle"></i>By <?php echo esc($blogWriter) ?></a>
                                             </li>
                                         </ul>
                                     </div>
                                     <div class="contentblog text-justify">
-                                        <?php echo $det->blogdetails ?>
+                                        <?php echo $det->blogdetails ?? '' ?>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                      
-
-                       
                     </div>
 
                     <!-- Start Sidebar -->
@@ -68,26 +80,33 @@
                             <div class="sidebar-item recent-post">
                                 <h4 class="title">Recent Post</h4>
                                 <ul>
-                                    <?php
-                    			    foreach($allblogs as $bg)
-                    			    {
-                    			        ?>
-                                    <li>
-                                        <div class="thumb">
-                                            <a href="<?php echo base_url('blog/'.$bg->blogslug) ?>">
-                                                <img src="<?php echo base_url('uploads/blogs/'.$bg->image) ?>" alt="<?php echo $bg->title ?>">
-                                            </a>
-                                        </div>
-                                        <div class="info">
-                                            <div class="meta-title">
-                                                <span class="post-date"><?php echo date('d M, Y',strtotime($bg->blogdate)) ?></span>
+                                    <?php foreach ($allblogs as $bg): ?>
+                                        <?php
+                                        $recentImage = '';
+                                        if (!empty($bg->image)) {
+                                            $recentImageFile = basename((string) $bg->image);
+                                            $recentImagePath = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'blogs' . DIRECTORY_SEPARATOR . $recentImageFile;
+                                            if (is_file($recentImagePath)) {
+                                                $recentImage = base_url('uploads/blogs/' . rawurlencode($recentImageFile));
+                                            }
+                                        }
+                                        ?>
+                                        <li>
+                                            <div class="thumb">
+                                                <?php if ($recentImage !== ''): ?>
+                                                <a href="<?php echo esc(base_url('blog/' . $bg->blogslug)) ?>">
+                                                    <img src="<?php echo esc($recentImage) ?>" alt="<?php echo esc((string) $bg->title) ?>">
+                                                </a>
+                                                <?php endif; ?>
                                             </div>
-                                            <a href="<?php echo base_url('blog/'.$bg->blogslug) ?>"><?php echo $bg->title ?></a>
-                                        </div>
-                                    </li>
-                                    <?php
-                    			    }
-                    			    ?>
+                                            <div class="info">
+                                                <div class="meta-title">
+                                                    <span class="post-date"><?php echo esc(date('d M, Y', strtotime((string) $bg->blogdate))) ?></span>
+                                                </div>
+                                                <a href="<?php echo esc(base_url('blog/' . $bg->blogslug)) ?>"><?php echo esc((string) $bg->title) ?></a>
+                                            </div>
+                                        </li>
+                                    <?php endforeach; ?>
                                 </ul>
                             </div>
                             <div class="single-widget bg-dark quick-contact-widget text-light" style="background-image: url('<?php echo base_url("public/front/assets/img/shape/15.png") ?>');">

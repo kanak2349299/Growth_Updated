@@ -29,11 +29,9 @@ Events::on('pre_system', static function (): void {
             throw FrameworkException::forEnabledZlibOutputCompression();
         }
 
-        while (ob_get_level() > 0) {
-            ob_end_flush();
+        if (ob_get_level() === 0) {
+            ob_start(static fn ($buffer) => $buffer);
         }
-
-        ob_start(static fn ($buffer) => $buffer);
     }
 
     /*

@@ -57,7 +57,25 @@ class Session extends BaseConfig
      *
      * IMPORTANT: You are REQUIRED to set a valid save path!
      */
-    public string $savePath = WRITEPATH . 'session';
+    public string $savePath = '';
+
+    public function __construct()
+    {
+        parent::__construct();
+        $sessionDir = WRITEPATH . 'session';
+        if (!is_dir($sessionDir)) {
+            @mkdir($sessionDir, 0777, true);
+        }
+        if (@is_writable($sessionDir)) {
+            $this->savePath = $sessionDir;
+        } else {
+            $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'growth_sessions';
+            if (!is_dir($tempDir)) {
+                @mkdir($tempDir, 0777, true);
+            }
+            $this->savePath = $tempDir;
+        }
+    }
 
     /**
      * --------------------------------------------------------------------------

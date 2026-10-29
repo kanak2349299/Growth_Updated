@@ -12,6 +12,7 @@ $routes->get('career', 'Home::career');
 $routes->get('services', 'Home::services');
 $routes->get('blogs', 'Home::blogs');
 $routes->get('blog/(:any)', 'Home::blog/$1');
+$routes->get('resources', 'Home::resources');
 
 $routes->get('sustainability-services', 'Home::sustainabilityServices');
 $routes->get('esg-compliance-services', 'Home::esgCompliance');
@@ -20,6 +21,22 @@ $routes->get('training-mentorship', 'Home::training');
 $routes->get('process-safety-management', 'Home::processSafety');
 $routes->get('project-management', 'Home::projectManagement');
 $routes->get('continuous-improvement', 'Home::continuousImprovement');
+
+
+// Individual ESG Framework Pages (Oren-style)
+$routes->get('brsr', 'Home::frameworkBrsr');
+$routes->get('tcfd', 'Home::frameworkTcfd');
+$routes->get('sbtn', 'Home::frameworkSbtn');
+$routes->get('tnfd', 'Home::frameworkTnfd');
+$routes->get('csrd', 'Home::frameworkCsrd');
+$routes->get('cbam', 'Home::frameworkCbam');
+
+
+// Standalone ESG Tools & Pages
+$routes->get('esg-benchmarking', 'Home::esgBenchmarking');
+$routes->get('esg-maturity-tool', 'Home::esgMaturityTool');
+$routes->get('esg-clinic', 'Home::esgClinic');
+$routes->get('esg-report', 'Home::esgReport');
 
 // ALL FORM SUBMISSION
 $routes->post('submit-request-form', 'Home::submitRequestForm');

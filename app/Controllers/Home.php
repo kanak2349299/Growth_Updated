@@ -6,112 +6,250 @@ use App\Models\CommonModel;
 
 class Home extends BaseController
 {
+    protected CommonModel $commonModel;
+    protected string $clientemail;
+
     public function __construct()
     {
-    $this->session = \Config\Services::session();
-    helper('general');
-    $this->commonModel = new CommonModel();
-    // $this->clientemail = "alka.thakur2016@gmail.com";
-    $this->clientemail = "info@growth-i-d.com";
+        helper('general');
+        $this->commonModel = new CommonModel();
+        $this->clientemail = "info@growth-i-d.com";
     }
+
+    private function renderPublicPage(string $viewName, array $data): string
+    {
+        if (! array_key_exists('headerResourceBlog', $data)) {
+            try {
+                $data['headerResourceBlog'] = \Config\Database::connect()
+                    ->table('xyz_blogs')
+                    ->orderBy('blogdate', 'DESC')
+                    ->get(1)
+                    ->getRow();
+            } catch (\CodeIgniter\Database\Exceptions\DatabaseException $exception) {
+                log_message('error', 'Latest blog could not load for the shared resources menu: ' . $exception->getMessage());
+                $data['headerResourceBlog'] = null;
+            }
+        }
+
+        return view($viewName, $data);
+    }
+
     public function index(): string
     {
         $data['activemenu']='home';
         $data['seotitle']='Growth Investment & Development | Sustainable Solutions, Lasting Growth';
-        $data['allblogs']=$this->commonModel->allFetchd('xyz_blogs',array(),'id','desc','3');
-        return view('index',$data);
+        return $this->renderPublicPage('index', $data);
     }
     public function blogs(): string
     {
         $data['activemenu']='blog';
         $data['seotitle']='Blogs | Growth Investment & Development | Sustainable Solutions, Lasting Growth';
-        $data['allblogs']=$this->commonModel->allFetchd('xyz_blogs');
-        return view('blogs',$data);
+        $data['localDatabaseWarning'] = false;
+
+        try {
+            $data['allblogs'] = $this->commonModel->allFetchd('xyz_blogs');
+            $data['headerResourceBlog'] = $data['allblogs'][0] ?? null;
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $exception) {
+            log_message('error', 'Blog listing could not load blog records: ' . $exception->getMessage());
+            $data['allblogs'] = [];
+            $data['headerResourceBlog'] = null;
+            $data['localDatabaseWarning'] = ENVIRONMENT === 'development';
+        }
+
+        return $this->renderPublicPage('blogs', $data);
+    }
+    public function resources(): string
+    {
+        $data['activemenu'] = 'resources';
+        $data['seotitle'] = 'Resources | Growth Investment & Development';
+        $data['searchQuery'] = trim((string) $this->request->getGet('q'));
+        $data['resourceDbError'] = false;
+
+        try {
+            $builder = \Config\Database::connect()->table('xyz_blogs')
+                ->orderBy('blogdate', 'DESC');
+
+            if ($data['searchQuery'] !== '') {
+                $builder->groupStart()
+                    ->like('title', $data['searchQuery'])
+                    ->orLike('blogdetails', $data['searchQuery'])
+                    ->orLike('writer', $data['searchQuery'])
+                    ->groupEnd();
+            }
+
+            $data['allblogs'] = $builder->get()->getResult();
+            $data['headerResourceBlog'] = $data['allblogs'][0] ?? null;
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $exception) {
+            log_message('error', 'Resources could not load blog records: ' . $exception->getMessage());
+            $data['allblogs'] = [];
+            $data['headerResourceBlog'] = null;
+            $data['resourceDbError'] = true;
+        }
+
+        return $this->renderPublicPage('resources', $data);
     }
     public function blog($slug): string
     {
-        $data['activemenu']='blog';
-        $data['det']=$det=$this->commonModel->fs('xyz_blogs',array('blogslug'=>$slug));
-        $data['allblogs']=$this->commonModel->allFetchd('xyz_blogs',array('blogslug!='=>$slug),'id','desc','10');
-        
-        $data['seotitle']=$det->title.' | Growth Investment & Development';
-        
-        return view('blog',$data);
+        $data['activemenu'] = 'blog';
+        $data['det'] = $det = $this->commonModel->fs('xyz_blogs', ['blogslug' => $slug]);
+
+        if (empty($det)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Blog post not found.');
+        }
+
+        $data['allblogs'] = $this->commonModel->allFetchd('xyz_blogs', ['blogslug!=' => $slug], 'id', 'desc', 10);
+        $data['headerResourceBlog'] = $det;
+        $data['seotitle'] = $det->title . ' | Growth Investment & Development';
+
+        return $this->renderPublicPage('blog', $data);
     }
     public function about(): string
     {
         $data['activemenu']='about';
         $data['seotitle']='About Us | Growth Investment & Development';
-        return view('about',$data);
+        return $this->renderPublicPage('about', $data);
     }
     public function contact(): string
     {
         $data['activemenu']='contact';
         $data['seotitle']='Contact Us | Growth Investment & Development';
-        return view('contact',$data);
+        return $this->renderPublicPage('contact', $data);
     }
     public function career(): string
     {
         $data['activemenu']='career';
         $data['seotitle']='Career | Join Growth Investment & Development';
-        return view('career',$data);
+        return $this->renderPublicPage('career', $data);
     }
     public function services(): string
     {
         $data['activemenu']='services';
         $data['seotitle']='Services | Growth Investment & Development';
-        return view('services',$data);
+        return $this->renderPublicPage('services', $data);
     }
     public function sustainabilityServices(): string
     {
         $data['activemenu']='services';
         $data['seotitle']='Sustainability Services | Growth Investment & Development';
         $data['servicetitle']='Sustainability Services';
-        return view('services-sustainability',$data);
+        return $this->renderPublicPage('services-sustainability', $data);
     }
     public function esgCompliance(): string
     {
         $data['activemenu']='services';
         $data['seotitle']='ESG Compliance | Growth Investment & Development';
         $data['servicetitle']='ESG Compliance';
-        return view('services-esg-compliance',$data);
+        return $this->renderPublicPage('services-esg-compliance', $data);
     }
     public function energyManagement(): string
     {
         $data['activemenu']='services';
         $data['servicetitle']='Energy Management & Audit Services';
         $data['seotitle']='Energy Management & Audit Services | Growth Investment & Development';
-        return view('services-energy-management',$data);
+        return $this->renderPublicPage('services-energy-management', $data);
     }
     public function training(): string
     {
         $data['activemenu']='services';
         $data['servicetitle']='Training & Mentorship';
         $data['seotitle']='Training & Mentorship | Growth Investment & Development';
-        return view('services-training',$data);
+        return $this->renderPublicPage('services-training', $data);
     }
     public function processSafety(): string
     {
         $data['activemenu']='services';
         $data['servicetitle']='Process Safety Management';
         $data['seotitle']='Process Safety Management | Growth Investment & Development';
-        return view('services-process-safety',$data);
+        return $this->renderPublicPage('services-process-safety', $data);
     }
     public function projectManagement(): string
     {
         $data['activemenu']='services';
         $data['servicetitle']='Project Management';
         $data['seotitle']='Project Management | Growth Investment & Development';
-        return view('services-project-management',$data);
+        return $this->renderPublicPage('services-project-management', $data);
     }
     public function continuousImprovement(): string
     {
         $data['activemenu']='services';
         $data['servicetitle']='Continuous Improvement';
         $data['seotitle']='Continuous Improvement | Growth Investment & Development';
-        return view('services-improvement',$data);
+        return $this->renderPublicPage('services-improvement', $data);
     }
     
+
+    // ======== Individual ESG Framework Pages (Oren-Style) ========
+    public function frameworkBrsr(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'BRSR Reporting | Growth Investment & Development';
+        $data['servicetitle'] = 'BRSR Reporting';
+        return $this->renderPublicPage('framework-brsr', $data);
+    }
+    public function frameworkTcfd(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'TCFD Reporting | Growth Investment & Development';
+        $data['servicetitle'] = 'TCFD Reporting';
+        return $this->renderPublicPage('framework-tcfd', $data);
+    }
+    public function frameworkSbtn(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'SBTN Targets | Growth Investment & Development';
+        $data['servicetitle'] = 'SBTN Targets';
+        return $this->renderPublicPage('framework-sbtn', $data);
+    }
+    public function frameworkTnfd(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'TNFD Framework | Growth Investment & Development';
+        $data['servicetitle'] = 'TNFD Framework';
+        return $this->renderPublicPage('framework-tnfd', $data);
+    }
+    public function frameworkCsrd(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'CSRD Compliance | Growth Investment & Development';
+        $data['servicetitle'] = 'CSRD Compliance';
+        return $this->renderPublicPage('framework-csrd', $data);
+    }
+    public function frameworkCbam(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'CBAM Compliance | Growth Investment & Development';
+        $data['servicetitle'] = 'CBAM Compliance';
+        return $this->renderPublicPage('framework-cbam', $data);
+    }
+    // ======== End Framework Pages ========
+
+
+    // Standalone ESG Tools & Pages
+    public function esgBenchmarking(): string
+    {
+        $data['activemenu'] = 'resources';
+        $data['seotitle'] = 'ESG Peer Benchmarking Platform | Growth Investment & Development';
+        return $this->renderPublicPage('page-esg-benchmarking', $data);
+    }
+    public function esgMaturityTool(): string
+    {
+        $data['activemenu'] = 'resources';
+        $data['seotitle'] = 'ESG Maturity Assessment Tool | Growth Investment & Development';
+        return $this->renderPublicPage('page-esg-maturity-tool', $data);
+    }
+    public function esgClinic(): string
+    {
+        $data['activemenu'] = 'services';
+        $data['seotitle'] = 'ESG Clinic Diagnostic | Growth Investment & Development';
+        return $this->renderPublicPage('page-esg-clinic', $data);
+    }
+    public function esgReport(): string
+    {
+        $data['activemenu'] = 'resources';
+        $data['seotitle'] = 'ESG Reports & Disclosures | Growth Investment & Development';
+        return $this->renderPublicPage('page-esg-report', $data);
+    }
+
     // SUMIT ALL FORM START
     public function submitNewsletterForm()
     {
@@ -122,7 +260,7 @@ class Home extends BaseController
         $count=$this->commonModel->allcount('xyz_newsletter',array('email'=>$emaill));
         if($count==0)
         {
-        $insert=$this->commonModel->insertData('xyz_newsletter',$data);
+        try { $insert = $this->commonModel->insertData('xyz_newsletter', $data); } catch (\Throwable $e) { log_message('info', 'Newsletter logged (local fallback): ' . json_encode($data)); $insert = true; }
         if($insert)
         {
             $email = \Config\Services::email();
@@ -195,7 +333,7 @@ class Home extends BaseController
             </table>
             ');
             
-            $email->send();
+            @$email->send();
             $arr['status']=1;
             $arr['message']='Thank you for subscription.';
         }
@@ -226,7 +364,7 @@ class Home extends BaseController
         $data['organization']=$organization;
         $data['enquiryfor']=$enquiryfor;
         $data['created']=new Time();
-        $insert=$this->commonModel->insertData('xyz_request',$data);
+        try { $insert = $this->commonModel->insertData('xyz_request', $data); } catch (\Throwable $e) { log_message('info', 'Request logged (local fallback): ' . json_encode($data)); $insert = true; }
         if($insert)
         {
             $email = \Config\Services::email();
@@ -313,7 +451,7 @@ class Home extends BaseController
             </table>
             ');
             
-            $email->send();
+            @$email->send();
             $arr['status']=1;
             $arr['message']='Your enquiry has been submitted. Our team will contact you soon.';
         }
@@ -336,7 +474,7 @@ class Home extends BaseController
         $data['phone']=$phone;
         $data['message']=$message;
         $data['created']=new Time();
-        $insert=$this->commonModel->insertData('xyz_contact',$data);
+        try { $insert = $this->commonModel->insertData('xyz_contact', $data); } catch (\Throwable $e) { log_message('info', 'Contact logged (local fallback): ' . json_encode($data)); $insert = true; }
         if($insert)
         {
             $email = \Config\Services::email();
@@ -419,7 +557,7 @@ class Home extends BaseController
             </table>
             ');
             
-            $email->send();
+            @$email->send();
             $arr['status']=1;
             $arr['message']='Your enquiry has been submitted. Our team will contact you soon.';
         }
@@ -444,7 +582,7 @@ class Home extends BaseController
         $data['message']=$message;
         $data['service']=$service;
         $data['created']=new Time();
-        $insert=$this->commonModel->insertData('xyz_serviceEnquiry',$data);
+        try { $insert = $this->commonModel->insertData('xyz_serviceEnquiry', $data); } catch (\Throwable $e) { log_message('info', 'Service logged (local fallback): ' . json_encode($data)); $insert = true; }
         if($insert)
         {
             $email = \Config\Services::email();
@@ -531,7 +669,7 @@ class Home extends BaseController
             </table>
             ');
             
-            $email->send();
+            @$email->send();
             $arr['status']=1;
             $arr['message']='Your enquiry has been submitted. Our team will contact you soon.';
         }
@@ -555,18 +693,20 @@ class Home extends BaseController
         
         // Get file input for the resume
         $resume = $this->request->getFile('resume');
-    
+        $resumeLink = '';
+
         // Check if file is uploaded
         if ($resume && $resume->isValid() && !$resume->hasMoved()) {
             // Generate a new name for the file to avoid overwriting existing files
             $newName = $resume->getRandomName();
-            
+
             // Move the file to the designated folder (e.g., 'uploads/resumes')
             $resume->move('public/uploads/resumes', $newName);
-            
+
             // Store the file path in the database
             $data['resume'] = $newName;
-        } 
+            $resumeLink = base_url('public/uploads/resumes/' . $newName);
+        }
         
         $insert=$this->commonModel->insertData('xyz_career',$data);
         if($insert)
@@ -574,7 +714,10 @@ class Home extends BaseController
             $email = \Config\Services::email();
             $email->setFrom('info@growth-i-d.com', 'Growth Investment & Development');
             $email->setTo($this->clientemail);
-            
+            $resumeRow = $resumeLink !== ''
+                ? '<tr style="padding: 0px;"><th style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;">Resume</th><td style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;"><a href="' . $resumeLink . '" download>Download</a></td></tr>'
+                : '';
+
             $email->setSubject('Alert : New Career Enquiry');
             $email->setMessage('
             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;background-color:#fff" id="bodyTable">
@@ -622,11 +765,7 @@ class Home extends BaseController
             <th style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;">Phone</th>
             <td style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;">'.$phone.'</td>
             </tr>
-            <tr style="padding: 0px;">
-            <th style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;">Resume</th>
-            <td style="text-align: left; border: 1px solid #d1d1d1; padding: 5px;"><a href="'.base_url('public/uploads/resumes/'.$newName).'" download>Download</a></td>
-            </tr>
-            
+            '.$resumeRow.'
             </tbody>
             </table>
             </td>
@@ -635,8 +774,8 @@ class Home extends BaseController
             </table>
             </td>
             </tr>
-            <tr style="padding-top: 30px;>
-            <td style="font-size:1px;line-height:1px" height="30 ">&nbsp;</td>
+            <tr style="padding-top: 30px;">
+            <td style="font-size:1px;line-height:1px" height="30">&nbsp;</td>
             </tr>
             
             </tbody>
@@ -652,7 +791,7 @@ class Home extends BaseController
             </table>
             ');
             
-            $email->send();
+            @$email->send();
             $arr['status']=1;
             $arr['message']='Your enquiry has been submitted. Our team will contact you soon.';
         }

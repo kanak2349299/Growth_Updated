@@ -8,10 +8,18 @@
 <body class="home-solar">
     
 	<?php include 'includes/header.php' ?>
+
+	<?php if (! empty($localDatabaseWarning)): ?>
+		<div class="container" role="status">
+			<div class="alert alert-warning mt-3">
+				Local blog content is unavailable. Set local database credentials in the ignored .env file, start MySQL/MariaDB, and import the supplied database dump.
+			</div>
+		</div>
+	<?php endif; ?>
 	
-	<div class="breadcrumb-area bg-cover shadow dark text-center text-light mt-150" style="background-image: url('<?php echo base_url("public/front/assets/img/banner/10.jpg") ?>')">
+	<div class="breadcrumb-area bg-cover shadow dark text-center text-light mt-150" style="background-image: url('<?php echo base_url($frontAssetBase . "img/banner/10.jpg") ?>')">
         <div class="breadcrum-shape">
-            <img src="<?php echo base_url("public/front/assets/img/shapes/breadcrumb.png") ?>" alt="Image Not Found">
+            <img src="<?php echo base_url($frontAssetBase . "img/shapes/breadcrumb.png") ?>" alt="Image Not Found">
         </div>
         <div class="container">
             <div class="row">
@@ -54,6 +62,11 @@
 				<?php
 			    }
 			    ?>
+			    <?php if (empty($allblogs) && empty($localDatabaseWarning)): ?>
+					<div class="col-12">
+						<p>No published articles are available yet.</p>
+					</div>
+				<?php endif; ?>
 			</div>
 		</div>
 	</div>
